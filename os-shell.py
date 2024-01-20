@@ -11,6 +11,7 @@ HISTORY_FILE = 'history.txt'
 
 
 def execute_command(command):
+    # Split the command into a list of words
     command = command.split()
 
     # Check for 'clear_history' command
@@ -25,14 +26,35 @@ def execute_command(command):
         print_help()
         return
 
+    # Check for output redirection ('>')
+    if '>' in command:
+        index = command.index('>')
+        file_name = command[index + 1]
+        command = command[:index]
+        stdout = open(file_name, 'w')
+    else:
+        stdout = subprocess.PIPE
+
+    # Check for input redirection ('<')
+    if '<' in command:
+        index = command.index('<')
+        file_name = command[index + 1]
+        command = command[:index]
+        stdin = open(file_name, 'r')
+    else:
+        stdin = subprocess.PIPE
+
     try:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, stdin=stdin, stdout=stdout, stderr=subprocess.PIPE)
         output, error = process.communicate()
+
+        if stdout != subprocess.PIPE:
+            stdout.close()
+        else:
+            print(output.decode().strip())
 
         if process.returncode != 0:
             print(f"Error: {error.decode().strip()}")
-        else:
-            print(output.decode().strip())
 
     except FileNotFoundError:
         print(f"Command not found: {command[0]}")
